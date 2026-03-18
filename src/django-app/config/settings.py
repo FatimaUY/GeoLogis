@@ -33,6 +33,9 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     #My apps
     'GeoLogis',
+    "market",
+    "predictions",
+    "users",
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

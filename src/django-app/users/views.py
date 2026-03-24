@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from django.contrib.auth import get_user_model
 from .forms import CustomUserCreationForm
 from django.contrib import messages
+from .forms import CustomUserCreationForm, CustomLoginForm
 
 User = get_user_model()
 
@@ -32,15 +33,19 @@ def login_api(request):
 
 def login_view(request):
     if request.method == "POST":
-        email = request.POST.get("email")
-        password = request.POST.get("password")
-        user = authenticate(request, email=email, password=password)
-        if user:
-            auth_login(request, user)
-            return redirect("home")
-        else:
-            return render(request, "users/login.html", {"error": "Identifiants invalides"})
-    return render(request, "users/login.html")
+        form = CustomLoginForm(request.POST)
+        if form.is_valid():
+            email = form.cleaned_data["email"]
+            password = form.cleaned_data["password"]
+            user = authenticate(request, email=email, password=password)
+            if user:
+                auth_login(request, user)
+                return redirect("home")
+            else:
+                form.add_error(None, "Identifiants invalides")
+    else:
+        form = CustomLoginForm()
+    return render(request, "users/login.html", {"form": form})
 
 def logout_view(request):
     auth_logout(request)

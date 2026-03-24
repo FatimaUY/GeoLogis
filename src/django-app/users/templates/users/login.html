@@ -1,15 +1,30 @@
 {% extends 'base.html' %}
 {% block title %}Connexion{% endblock %}
 {% block content %}
-<h2>Connexion</h2>
-<form method="POST">
-    {% csrf_token %}
-    <input type="email" name="email" placeholder="Email" required>
-    <input type="password" name="password" placeholder="Mot de passe" required>
-    {% if error %}
-        <p style="color:red;">{{ error }}</p>
+<div class="login-container">
+    <h2>Connexion</h2>
+    {% if messages %}
+        {% for message in messages %}
+            <p style="color: {% if message.tags == 'error' %}red{% else %}green{% endif %};">
+                {{ message }}
+            </p>
+        {% endfor %}
     {% endif %}
-    <button type="submit">Se connecter</button>
-</form>
-<p>Pas encore de compte ? <a href="{% url 'register' %}">S'inscrire</a></p>
+    <form method="POST">
+        {% csrf_token %}
+        {% for field in form %}
+            <div style="margin-bottom: 15px;">
+                <label>{{ field.label }}</label><br>
+                {{ field }}
+                {% if field.errors %}
+                    {% for error in field.errors %}
+                        <small style="color: red; display: block;">{{ error }}</small>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        {% endfor %}
+        <button type="submit">Se connecter</button>
+    </form>
+    <p>Pas encore de compte ? <a href="{% url 'register' %}">S'inscrire</a></p>
+</div>
 {% endblock %}

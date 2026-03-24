@@ -21,7 +21,7 @@ from GeoLogis.views import  ListeArticlesView
 urlpatterns = [
     path('', ListeArticlesView.as_view(), name='home'),
     path('admin/', admin.site.urls),
-    path('api/users/', include('users.urls')),
+    path('', include('users.urls')),
     path('api/market/', include('market.urls')),
     path('api/predictions/', include('predictions.urls')),
     path('api/geologis/', include('GeoLogis.urls')),

@@ -1,16 +1,56 @@
 {% extends 'base.html' %}
 
-{% block title %}Liste des articles{% endblock %}
+{% block title %}Accueil - GeoLogis{% endblock %}
 
 {% block content %}
-    <h1>Liste des articles</h1>
-    <ul>
-        {% for article in articles %}
-            <li>
-                <h2>{{ article.title }}</h2>
-                <p>{{ article.content }}</p>
-                <p>Publié le {{ article.published_date }}</p>
-            </li>
-        {% endfor %}
-    </ul>
+<div class="relative bg-white border-b border-gray-100 overflow-hidden">
+    <div class="absolute inset-0 opacity-5">
+        <svg class="w-full h-full" width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <defs>
+                <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
+                    <path d="M 10 0 L 0 0 0 10" fill="none" stroke="currentColor" stroke-width="0.5"/>
+                </pattern>
+            </defs>
+            <rect width="100" height="100" fill="url(#grid)" class="text-sage" />
+        </svg>
+    </div>
+
+    <div class="relative max-w-7xl mx-auto px-4 py-16 sm:px-6 sm:py-24 lg:px-8 lg:py-32 flex flex-col items-center text-center">
+        
+        <span class="inline-flex items-center px-4 py-1 rounded-full text-sm font-semibold bg-beige bg-opacity-20 text-brown border border-beige border-opacity-30 mb-8 transform hover:scale-105 transition-transform duration-300">
+            <svg class="w-4 h-4 mr-2 text-sage" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.7-1.838-.197-1.54-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+            </svg>
+            L'analyse intelligente par GeoLogis
+        </span>
+
+        <h1 class="text-4xl tracking-tight font-extrabold text-black sm:text-5xl md:text-6xl max-w-4xl mx-auto leading-tight">
+            <span class="block">GeoLogis :</span>
+            <span class="block text-brown mt-1">Le <span class="relative">
+                <span class="relative z-10">couteau suisse</span>
+                <span class="absolute bottom-0 left-0 w-full h-3 bg-beige bg-opacity-60 rounded-full z-0 transform translate-y-1"></span>
+            </span> de l'immobilier<span class="text-sage">.</span></span>
+        </h1>
+
+        <p class="mt-8 max-w-2xl mx-auto text-xl text-gray-600 leading-relaxed font-light">
+            Prédictions de prix, analyses de marché local, tendances : tous les outils essentiels pour vos décisions immobilières, réunis sur une seule plateforme puissante.
+        </p>
+
+        <div class="mt-12 max-w-sm mx-auto sm:max-w-none sm:flex sm:justify-center sm:space-x-6">
+            <a href="{% url 'register' %}" class="flex items-center justify-center px-8 py-4 border border-transparent text-lg font-bold rounded-xl text-white bg-brown hover:bg-opacity-95 md:py-4 md:text-xl md:px-10 transition duration-150 shadow-lg transform hover:-translate-y-0.5">
+                Commencer gratuitement
+            </a>
+            <a href="#" class="mt-4 sm:mt-0 flex items-center justify-center px-8 py-4 border-2 border-sage text-lg font-semibold rounded-xl text-sage hover:bg-sage hover:text-white md:py-4 md:text-xl md:px-10 transition duration-200">
+                En savoir plus
+                <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                </svg>
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-4 py-12">
+    </div>
+
 {% endblock %}

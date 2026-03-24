@@ -5,6 +5,8 @@ from django.shortcuts import render, redirect
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.contrib.auth import get_user_model
+from .forms import CustomUserCreationForm
+from django.contrib import messages
 
 User = get_user_model()
 
@@ -46,9 +48,15 @@ def logout_view(request):
 
 def register_view(request):
     if request.method == "POST":
-        email = request.POST.get("email")
-        password = request.POST.get("password")
-        user = User.objects.create_user(email=email, password=password)
-        auth_login(request, user)
-        return redirect("home")
-    return render(request, "users/register.html")
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Inscription réussie ! Vous pouvez maintenant vous connecter.")
+            return redirect("login")
+        else:
+            messages.error(request, "Erreur lors de l'inscription. Veuillez vérifier les informations fournies.")   
+            
+    else:
+        form = CustomUserCreationForm()
+    return render(request, "users/register.html", {"form": form})
+       

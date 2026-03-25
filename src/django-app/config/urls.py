@@ -31,3 +31,8 @@ urlpatterns = [
     path('api/geologis/', include('GeoLogis.urls')),
     path('api/predictions/', include('predictions.urls')),
 ]
+
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'profil'
+LOGOUT_REDIRECT_URL = 'home'
+PASSWORD_CHANGE_REDIRECT_URL = 'profil'

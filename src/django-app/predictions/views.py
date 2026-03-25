@@ -2,34 +2,87 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import Prediction
 from .services import fake_prediction
+import folium 
+import requests
+from django.shortcuts import render
 
-@api_view(["POST"])
+@api_view(["GET", "POST"]) 
 def predict(request):
-    data = request.data
+    prediction = None
+    map_html = None
+    nom_commune = "Zone non définie"
 
-    required_fields = ["prix_m2", "population", "property_tax", "last_year_property_tax"]
+    if request.method == "POST":
+        
+        data = request.data
+        zipcode = request.data.get("zipcode")
+        
+        
+        
+        
+        
+        geo_url = f"https://geo.api.gouv.fr/communes?codePostal={zipcode}&fields=nom,centre,contour,population&format=json&geometry=contour"
+        
+        try:
+            geo_response = requests.get(geo_url)
+            geo_data = geo_response.json()
 
-    for field in required_fields:
-        if field not in data:
-            return Response({"error": f"{field} manquant"}, status=400)
+            if geo_data:
+                commune = geo_data[0]
+                nom_commune = commune.get('nom')
+                pop_auto = commune.get('population', 0)
+                lon, lat = commune['centre']['coordinates']
+                
+                result = fake_prediction({
+                    "zipcode": zipcode,
+                    "population": pop_auto
+                })
 
-    # fake ML
-    result = fake_prediction(data)
+                
+                m = folium.Map(location=[lat, lon], zoom_start=12, tiles="OpenStreetMap")
 
-    prediction = Prediction.objects.create(
-        prix_m2=data["prix_m2"],
-        population=data["population"],
-        property_tax=data["property_tax"],
-        last_year_property_tax=data["last_year_property_tax"],
-        result=result
-    )
+                
+                if 'contour' in commune:
+                    folium.GeoJson(
+                        commune['contour'],
+                        style_function=lambda x: {
+                            'fillColor': '#8CA5A5', 
+                            'color': '#7A5B3E', 
+                            'weight': 2, 
+                            'fillOpacity': 0.3
+                        }
+                    ).add_to(m)
 
-    return Response({
-        "id": prediction.id,
-        "prediction": result
+                
+                folium.Marker(
+                    [lat, lon], 
+                    popup=f"Analyse : {nom_commune}",
+                    icon=folium.Icon(color='red', icon='home')
+                ).add_to(m)
+
+                
+                map_html = m._repr_html_()
+
+                prediction = {
+                    "result": result,
+                    "population": pop_auto,
+                    "nom": nom_commune
+                }
+
+        except Exception as e:
+            print(f"Erreur API Géo/Folium: {e}")
+
+       
+
+    
+    return render(request, "prediction/prediction.html", {
+        "prediction": prediction,
+        "map_html": map_html,
+        "nom_commune": nom_commune
     })
 
 @api_view(["GET"])
 def get_predictions(request):
-    predictions = Prediction.objects.all().values()
-    return Response(list(predictions))
+    """Vue pour l'historique (utilisée par ton URLconf)"""
+    predictions = Prediction.objects.all().order_by('-id').values()
+    return Response(list(predictions))        

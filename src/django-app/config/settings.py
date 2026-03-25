@@ -43,7 +43,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    "tailwind",
+    "theme",
 ]
+
+TAILWIND_APP_NAME = "theme"
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -130,5 +134,5 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 STATICFILES_DIRS = [
-    BASE_DIR / STATIC_URL,
+    BASE_DIR.parent.parent / 'static',
 ]

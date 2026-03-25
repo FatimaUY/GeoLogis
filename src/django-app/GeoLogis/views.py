@@ -1,8 +1,14 @@
-from django.shortcuts import render
+from django.views.generic import ListView
 from .models import Article
+from django.shortcuts import render
 
-def liste_articles(request):
-    articles = Article.objects.all()
-    context = {'articles': articles}
-    return render(request, 'GeoLogis/liste_articles.html', context) 
-# Create your views here.
+class ListeArticlesView(ListView):
+    model = Article
+    template_name = 'GeoLogis/acceuil.html'
+    context_object_name = 'articles'
+
+def info_view(request):
+    return render(request, 'info.html')
+
+    
+ 

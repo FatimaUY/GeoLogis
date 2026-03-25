@@ -16,12 +16,14 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from GeoLogis.views import liste_articles
+from GeoLogis.views import  ListeArticlesView
+from GeoLogis.views import ListeArticlesView, info_view
 
 urlpatterns = [
-    path('', liste_articles, name='home'),
+    path('', ListeArticlesView.as_view(), name='home'),
     path('admin/', admin.site.urls),
-    path('api/users/', include('users.urls')),
+    path('information/', info_view, name='info_key'),
+    path('', include('users.urls')),
     path('api/market/', include('market.urls')),
     path('api/predictions/', include('predictions.urls')),
     path('api/geologis/', include('GeoLogis.urls')),

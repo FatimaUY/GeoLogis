@@ -43,7 +43,7 @@
                 </div>
 
                 <div class="hidden md:flex items-center space-x-6">
-                    
+                    <a href="{% url 'prediction' %}" class="text-sm font-bold text-gray-500 hover:text-brown transition">Simulation</a>
                     {% if user.is_authenticated %}
                         <a href="{% url 'profil' %}" class="text-sm font-bold text-sage hover:text-brown transition">
                             Mon Profil
@@ -74,12 +74,10 @@
             </div>
         </div>
 
-        <div id="mobile-menu" class="hidden md:hidden bg-white border-b border-gray-100 px-4 pt-2 pb-6 space-y-2">
-            <a href="{% url 'home' %}" class="block px-3 py-2 text-gray-700 font-medium hover:bg-gray-50 rounded-lg">Accueil</a>
-            <a href="{% url 'info_key' %}" class="block px-3 py-2 text-gray-700 font-medium hover:bg-gray-50 rounded-lg">Information</a>
-            
+        <div id="mobile-menu" class="hidden md:hidden bg-white border-b border-gray-100 px-4 pt-2 pb-6 space-y-2"> 
             {% if user.is_authenticated %}
                 <a href="{% url 'profil' %}" class="block px-3 py-2 text-sage font-bold hover:bg-sage hover:bg-opacity-5 rounded-lg">Mon Profil</a>
+                <a href="{% url 'prediction' %}" class="block px-3 py-2 text-sage font-bold hover:bg-sage hover:bg-opacity-5 rounded-lg">Simulation</a>
                 <hr class="my-2 border-gray-100">
                 <div class="px-3 py-1 text-xs text-gray-400 italic">Connecté : {{ user.email }}</div>
                 <form action="{% url 'logout' %}" method="POST" class="w-full">
@@ -91,6 +89,7 @@
             {% else %}
                 <hr class="my-2 border-gray-100">
                 <a href="{% url 'login' %}" class="block px-3 py-2 text-gray-700 font-medium">Se connecter</a>
+                <a href="{% url 'prediction' %}" class="block px-3 py-2 text-gray-700 font-medium">Simulation</a>
                 <a href="{% url 'register' %}" class="block px-3 py-2 text-brown font-bold">S'inscrire</a>
             {% endif %}
         </div>

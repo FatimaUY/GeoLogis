@@ -1,2 +1,6 @@
 from django.urls import path
-urlpatterns = []
+from .views import trends
+
+urlpatterns = [
+    path('', trends, name='market_data'),
+]

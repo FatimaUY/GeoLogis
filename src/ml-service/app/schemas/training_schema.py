@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from model.training import Prediction
+from ..model.training import Prediction
 
 class TrainingCreateSchema(BaseModel):
     

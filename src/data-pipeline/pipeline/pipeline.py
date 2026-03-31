@@ -1,6 +1,8 @@
 import pandas as pd
 import mlflow
 import mlflow.sklearn
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline as SklearnPipeline
 from sklearn.impute import SimpleImputer
@@ -18,7 +20,7 @@ class Pipeline:
         target_col="y",
         drop_cols=None,
         bad_dep_codes=None,
-        selected_k=5,
+        selected_k=20,
         random_state=42,
     ):
         self.target_col = target_col
@@ -27,14 +29,45 @@ class Pipeline:
         self.selected_k = selected_k
         self.random_state = random_state
 
+        categorical_cols = ["dep_code", "reg_code", "code_postal"]
+
+        numeric_cols = [
+            "annee",
+            "population",
+            "superficie_km2",
+            "zone_emploi",
+            "taux_global_tfb",
+            "taux_global_tfnb",
+            "taux_plein_teom",
+            "taux_global_th",
+            "nb_ventes",
+            "densite",
+            "ratio_taxe",
+            "ventes_par_habitant",
+            "taxe_x_population",
+        ]
+
+        preprocessor = ColumnTransformer(
+            transformers=[
+                ("num", SimpleImputer(strategy="mean"), numeric_cols),
+                ("cat", OneHotEncoder(handle_unknown="ignore"), categorical_cols),
+            ]
+        )
+
         self.model = SklearnPipeline(
             [
-                ("imputer", SimpleImputer(strategy="mean")),
-                ("scaler", StandardScaler()),
+                ("preprocessing", preprocessor),
                 ("selector", SelectKBest(f_classif, k=self.selected_k)),
                 (
                     "classifier",
-                    RandomForestClassifier(random_state=self.random_state, n_estimators=100),
+                    RandomForestClassifier(
+                        random_state=self.random_state,
+                        n_estimators=300,
+                        max_depth=20,
+                        min_samples_split=5,
+                        min_samples_leaf=2,
+                        class_weight="balanced",
+                    ),
                 ),
             ]
         )
@@ -52,7 +85,18 @@ class Pipeline:
             df = df[~df["dep_code"].isin(self.bad_dep_codes)]
 
         df = df.dropna().reset_index(drop=True)
+        # Feature engineering ici
+
+        df["densite"] = df["population"] / (df["superficie_km2"] + 1)
+
+        df["ratio_taxe"] = df["taux_global_tfb"] / (df["taux_global_th"] + 1)
+
+        df["ventes_par_habitant"] = df["nb_ventes"] / (df["population"] + 1)
+
+        df["taxe_x_population"] = df["taux_global_tfb"] * (df["population"] + 1)
+
         return df
+
 
     def split(self, df: pd.DataFrame, features, year_col="annee"):
         if year_col not in df.columns:

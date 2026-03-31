@@ -3,6 +3,9 @@ import mlflow
 import mlflow.sklearn
 from pipeline import Pipeline
 
+import matplotlib
+matplotlib.use("Agg")
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
 mlflow.sklearn.autolog()
@@ -33,6 +36,10 @@ def main(csv_path="../merge/raw/csv_full_post.csv"):
         df_clean = pipeline.clean(df)
 
         features = [
+            "densite",
+            "ratio_taxe",
+            "ventes_par_habitant",
+            "taxe_x_population",
             "annee",
             "dep_code",
             "reg_code",

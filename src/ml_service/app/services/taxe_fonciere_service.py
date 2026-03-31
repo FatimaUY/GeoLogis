@@ -1,15 +1,12 @@
 import sys
-import logging
 import pandas as pd
 import requests
 import time
 from datetime import datetime
 from typing import Optional
 
-# Import the SQLAlchemy engine
-from ..model.database import engine
-
-logger = logging.getLogger(__name__)
+from ..model.database import engine, SessionLocal
+from ..model.taxe_fonciere import TaxeFonciere
 
 # ------------------------------------------------------------------ #
 #  Config - mirrored from api_taxe_foncière.py                       #
@@ -147,7 +144,6 @@ class TaxeFonciereService:
     """Service for taxe foncière data operations."""
 
     def __init__(self):
-        self.logger = logger
         self.total_fetched = 0
         self.total_fallback = 0
 
@@ -162,14 +158,10 @@ class TaxeFonciereService:
         try:
             r = requests.get(url, params=params, timeout=10)
             if r.status_code != 200:
-                self.logger.error(
-                    f"HTTP {r.status_code} — {code_insee}/{annee}: {r.text[:300]}"
-                )
                 return None
             results = r.json().get("results", [])
             return results[0] if results else None
         except requests.RequestException as e:
-            self.logger.error(f"Network error — {code_insee}/{annee}: {e}")
             return None
 
     def fetch_with_fallback(
@@ -191,9 +183,6 @@ class TaxeFonciereService:
         for fb_annee in fallback_order:
             row = self.fetch_record(code_insee, fb_annee)
             if row:
-                self.logger.info(
-                    f"Fallback {code_insee}/{annee} → using {fb_annee}"
-                )
                 self.total_fallback += 1
                 return row, fb_annee
 
@@ -204,8 +193,6 @@ class TaxeFonciereService:
         records = []
         total = len(CHEFS_LIEUX) * len(ANNEES)
         done = 0
-
-        self.logger.info(f"Starting fetch of {total} records...")
 
         for annee in ANNEES:
             for dept, (code_insee, nom_commune) in sorted(CHEFS_LIEUX.items()):
@@ -221,35 +208,19 @@ class TaxeFonciereService:
                     records.append(row)
                     self.total_fetched += 1
 
-                    flag = "↩" if row["est_fallback"] else "✓"
-                    self.logger.info(
-                        f"{flag} [{done:>3}/{total}] {dept:>3} | "
-                        f"{nom_commune:<25} | {code_insee} | {annee}"
-                        + (f" → src:{annee_src}" if row["est_fallback"] else "")
-                    )
-                else:
-                    self.logger.warning(
-                        f"✗ [{done:>3}/{total}] {dept:>3} | "
-                        f"{nom_commune:<25} | {code_insee} | {annee} → no data"
-                    )
+                time.sleep(0.15)
 
-                time.sleep(0.15)  # Rate limiting
-
-        self.logger.info(f"Fetch complete: {self.total_fetched} records fetched")
         return pd.DataFrame(records) if records else pd.DataFrame()
 
     def process_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """Process and clean the dataframe."""
         if df.empty:
-            self.logger.warning("Empty dataframe, no processing done")
             return df
 
-        # Convert numeric columns
         for col in NUMERIC_COLS:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors="coerce")
 
-        # Reorder columns
         col_order = [
             "dept",
             "nom_commune",
@@ -268,20 +239,38 @@ class TaxeFonciereService:
         return df
 
     def save_to_database(self, df: pd.DataFrame, table_name: str = "taxe_fonciere") -> bool:
-        """Save dataframe to database using SQLAlchemy engine."""
+        """Save dataframe to database using SQLAlchemy ORM."""
+        db = SessionLocal()
         try:
             if df.empty:
-                self.logger.warning("Cannot save empty dataframe")
                 return False
 
-            df.to_sql(name=table_name, con=engine, if_exists="replace", index=False)
-            self.logger.info(
-                f"Successfully saved {len(df)} records to table '{table_name}'"
-            )
+            db.query(TaxeFonciere).delete()
+            
+            records = [
+                TaxeFonciere(
+                    dept=row["dept"],
+                    nom_commune=row["nom_commune"],
+                    insee_com=row["insee_com"],
+                    annee_cible=int(row["annee_cible"]),
+                    annee_source=int(row["annee_source"]),
+                    est_fallback=bool(row["est_fallback"]),
+                    taux_global_tfb=float(row["taux_global_tfb"]) if pd.notna(row["taux_global_tfb"]) else None,
+                    taux_global_tfnb=float(row["taux_global_tfnb"]) if pd.notna(row["taux_global_tfnb"]) else None,
+                    taux_plein_teom=float(row["taux_plein_teom"]) if pd.notna(row["taux_plein_teom"]) else None,
+                    taux_global_th=float(row["taux_global_th"]) if pd.notna(row["taux_global_th"]) else None,
+                )
+                for _, row in df.iterrows()
+            ]
+            
+            db.add_all(records)
+            db.commit()
             return True
         except Exception as e:
-            self.logger.error(f"Failed to save to database: {e}")
+            db.rollback()
             return False
+        finally:
+            db.close()
 
     def sync_taxe_fonciere_data(self) -> dict:
         """
@@ -289,16 +278,11 @@ class TaxeFonciereService:
         Returns a summary of the operation.
         """
         start_time = datetime.now()
-        self.logger.info("=" * 60)
-        self.logger.info("Starting taxe foncière data synchronization")
-        self.logger.info("=" * 60)
 
         try:
-            # Fetch all data
             df = self.fetch_all_data()
 
             if df.empty:
-                self.logger.error("No data fetched from API")
                 return {
                     "success": False,
                     "message": "No data fetched",
@@ -306,27 +290,14 @@ class TaxeFonciereService:
                     "duration_seconds": (datetime.now() - start_time).total_seconds(),
                 }
 
-            # Process data
             df = self.process_dataframe(df)
 
-            # Log fallback statistics
             nb_fallback = int(df["est_fallback"].sum())
-            if nb_fallback:
-                self.logger.warning(f"{nb_fallback} records used fallback years")
-                fallback_df = df[df["est_fallback"]][
-                    ["dept", "nom_commune", "annee_cible", "annee_source"]
-                ]
-                self.logger.debug(f"\nFallback details:\n{fallback_df.to_string(index=False)}")
 
-            # Save to database
             success = self.save_to_database(df)
 
             if success:
                 duration = (datetime.now() - start_time).total_seconds()
-                self.logger.info("=" * 60)
-                self.logger.info(f"Synchronization completed successfully")
-                self.logger.info(f"Duration: {duration:.2f} seconds")
-                self.logger.info("=" * 60)
 
                 return {
                     "success": True,
@@ -345,7 +316,6 @@ class TaxeFonciereService:
                 }
 
         except Exception as e:
-            self.logger.error(f"Error during synchronization: {e}", exc_info=True)
             return {
                 "success": False,
                 "message": str(e),

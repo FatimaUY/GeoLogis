@@ -1,0 +1,79 @@
+from typing import List, Optional
+from fastapi import Depends
+from sqlalchemy.orm import Session
+from sqlalchemy import and_
+
+from ..model.database import get_db
+from ..model.taxe_fonciere import TaxeFonciere
+from ..schemas.taxe_fonciere_schema import (
+    TaxeFonciereCreateSchema,
+    TaxeFonciereReadSchema,
+    TaxeFonciereFilterSchema,
+)
+
+
+class TaxeFonciereRepository:
+    """Repository for taxe foncière database operations."""
+
+    def __init__(self, db: Session = Depends(get_db)):
+        self.db = db
+
+    def get_all(self) -> List[TaxeFonciere]:
+        """Get all taxe foncière records."""
+        return self.db.query(TaxeFonciere).all()
+
+    def get_by_id(self, record_id: int) -> Optional[TaxeFonciere]:
+        """Get a taxe foncière record by ID."""
+        return self.db.query(TaxeFonciere).filter(TaxeFonciere.id == record_id).first()
+
+    def get_by_dept(self, dept: str) -> List[TaxeFonciere]:
+        """Get all records for a specific department."""
+        return self.db.query(TaxeFonciere).filter(TaxeFonciere.dept == dept).all()
+
+    def get_by_insee(self, insee_com: str) -> List[TaxeFonciere]:
+        """Get all records for a specific INSEE commune code."""
+        return self.db.query(TaxeFonciere).filter(
+            TaxeFonciere.insee_com == insee_com
+        ).all()
+
+    def get_by_year(self, annee_cible: int) -> List[TaxeFonciere]:
+        """Get all records for a specific year."""
+        return self.db.query(TaxeFonciere).filter(
+            TaxeFonciere.annee_cible == annee_cible
+        ).all()
+
+    def get_by_dept_and_year(
+        self, dept: str, annee_cible: int
+    ) -> Optional[TaxeFonciere]:
+        """Get a record for a specific department and year."""
+        return self.db.query(TaxeFonciere).filter(
+            and_(
+                TaxeFonciere.dept == dept,
+                TaxeFonciere.annee_cible == annee_cible,
+            )
+        ).first()
+
+    def count_fallback(self) -> int:
+        """Get count of records that used fallback years."""
+        return self.db.query(TaxeFonciere).filter(
+            TaxeFonciere.est_fallback == True
+        ).count()
+
+    def get_average_rates_by_year(self, annee_cible: int) -> dict:
+        """Get average tax rates for a specific year."""
+        from sqlalchemy import func
+
+        result = self.db.query(
+            func.avg(TaxeFonciere.taux_global_tfb).label("avg_taux_global_tfb"),
+            func.avg(TaxeFonciere.taux_global_tfnb).label("avg_taux_global_tfnb"),
+            func.avg(TaxeFonciere.taux_plein_teom).label("avg_taux_plein_teom"),
+            func.avg(TaxeFonciere.taux_global_th).label("avg_taux_global_th"),
+        ).filter(TaxeFonciere.annee_cible == annee_cible).first()
+
+        return {
+            "annee_cible": annee_cible,
+            "avg_taux_global_tfb": result.avg_taux_global_tfb,
+            "avg_taux_global_tfnb": result.avg_taux_global_tfnb,
+            "avg_taux_plein_teom": result.avg_taux_plein_teom,
+            "avg_taux_global_th": result.avg_taux_global_th,
+        } if result else {}

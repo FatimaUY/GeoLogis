@@ -1,11 +1,15 @@
 import pandas as pd
+import mlflow
+import mlflow.sklearn
 from sklearn.model_selection import train_test_split
-from sklearn.pipeline import Pipeline
+from sklearn.pipeline import Pipeline as SklearnPipeline
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
 from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+
+mlflow.sklearn.autolog()
 
 
 class Pipeline:
@@ -23,7 +27,7 @@ class Pipeline:
         self.selected_k = selected_k
         self.random_state = random_state
 
-        self.model = Pipeline(
+        self.model = SklearnPipeline(
             [
                 ("imputer", SimpleImputer(strategy="mean")),
                 ("scaler", StandardScaler()),

@@ -2,6 +2,7 @@ import requests
 import pandas as pd
 import time
 import sys
+from ...ml_service.app.model.database import get_db
 
 # ------------------------------------------------------------------ #
 #  Config                                                              #
@@ -136,19 +137,8 @@ CHEFS_LIEUX = {
     "973": ("97302", "Cayenne"),
     "974": ("97411", "Saint-Denis"),
     "976": ("97608", "Mamoudzou"),
-    # COM exclues : régime fiscal propre, absentes du dataset DGFiP
-    # "975": ("97500", "Saint-Pierre-et-Miquelon"),
-    # "977": ("97701", "Gustavia"),
-    # "978": ("97801", "Marigot"),
-    # "986": ("98611", "Mata-Utu"),
-    # "987": ("98735", "Papeete"),
-    # "988": ("98818", "Nouméa"),
 }
 
-
-# ------------------------------------------------------------------ #
-#  Requête unitaire                                                    #
-# ------------------------------------------------------------------ #
 def fetch_record(code_insee: str, annee: int) -> dict | None:
     """
     exercice est un champ TEXT dans ce dataset  →  guillemets simples obligatoires.
@@ -175,9 +165,6 @@ def fetch_record(code_insee: str, annee: int) -> dict | None:
         return None
 
 
-# ------------------------------------------------------------------ #
-#  Fallback si année absente du REI                                   #
-# ------------------------------------------------------------------ #
 def fetch_with_fallback(
     code_insee: str, annee: int
 ) -> tuple[dict | None, int | None]:
@@ -205,9 +192,6 @@ def fetch_with_fallback(
     return None, None
 
 
-# ------------------------------------------------------------------ #
-#  Main                                                                #
-# ------------------------------------------------------------------ #
 if __name__ == "__main__":
     records = []
     total   = len(CHEFS_LIEUX) * len(ANNEES)
@@ -239,9 +223,6 @@ if __name__ == "__main__":
 
             time.sleep(0.15)
 
-    # ---------------------------------------------------------------- #
-    #  Post-traitement                                                  #
-    # ---------------------------------------------------------------- #
     if not records:
         print("\n⚠️  Aucune donnée collectée.")
         sys.exit(1)
@@ -272,9 +253,4 @@ if __name__ == "__main__":
             ].to_string(index=False)
         )
 
-    out_path = "taxe_fonciere_chefs_lieux_2021_2024.csv"
-    df.to_csv(out_path, index=False, encoding="utf-8-sig")
-    print(f"\n✅ {len(df)} lignes exportées → {out_path}")
-    print(f"   taux_global_tfb renseignés : {df['taux_global_tfb'].notna().sum()}/{len(df)}")
-    print("\nAperçu :")
-    print(df.head(12).to_string(index=False))
+    df.to_sql(name="taxe_fonciere", con=get_db(), if_exists="replace", )

@@ -36,6 +36,10 @@ def main(csv_path="../merge/raw/csv_full_post.csv"):
         df_clean = pipeline.clean(df)
 
         features = [
+            "evolution_ventes",
+            "evolution_taxe",
+            "taxe_vs_moyenne_dep",
+            "ventes_moyennes_dep",
             "densite",
             "ratio_taxe",
             "ventes_par_habitant",

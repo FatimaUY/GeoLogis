@@ -5,7 +5,7 @@ from typing import Optional
 class CommuneCreateSchema(BaseModel):
     """Schema for creating commune records."""
 
-    code_insee: int = Field(ge=1)
+    code_insee: str = Field(min_length=1, max_length=10)
     nom_standard: str = Field(min_length=1)
     code_postal: Optional[str] = Field(default=None, max_length=5)
     annee: int = Field(ge=2020, le=2025)
@@ -28,7 +28,7 @@ class CommuneReadSchema(BaseModel):
     """Schema for reading commune records."""
 
     id: int
-    code_insee: int
+    code_insee: str
     nom_standard: str
     code_postal: Optional[str] = None
     annee: int
@@ -50,7 +50,7 @@ class CommuneReadSchema(BaseModel):
 class CommuneFilterSchema(BaseModel):
     """Schema for filtering commune queries."""
 
-    code_insee: Optional[int] = Field(default=None)
+    code_insee: Optional[str] = Field(default=None)
     code_postal: Optional[str] = Field(default=None)
     annee: Optional[int] = Field(default=None, ge=2020, le=2025)
     dep_code: Optional[str] = Field(default=None)

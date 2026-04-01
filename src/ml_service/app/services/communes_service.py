@@ -27,7 +27,17 @@ class CommuneService:
     def load_csv(self, file_path: str) -> pd.DataFrame:
         """Load CSV file and return DataFrame."""
         try:
-            return pd.read_csv(file_path)
+            return pd.read_csv(
+                file_path,
+                sep=";",
+                dtype={
+                    "code_insee": str,
+                    "dep_code": str,
+                    "reg_code": str,
+                    "code_postal": str,
+                    "zone_emploi": str,
+                },
+            )
         except FileNotFoundError:
             return pd.DataFrame()
         except Exception as e:
@@ -39,7 +49,8 @@ class CommuneService:
         
         df = df.dropna(subset=required_columns)
         
-        df["code_insee"] = pd.to_numeric(df["code_insee"], errors="coerce")
+        # Keep code_insee as string (supports Corsican codes like 2A004)
+        df["code_insee"] = df["code_insee"].astype(str)
         df["annee"] = pd.to_numeric(df["annee"], errors="coerce")
         
         if "population" in df.columns:

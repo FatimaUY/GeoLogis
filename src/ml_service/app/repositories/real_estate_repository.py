@@ -2,10 +2,13 @@ from typing import List, Optional
 from fastapi import Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+import logging
 
 from ..model.database import get_db
 from ..model.real_estate import RealEstateMkt
 from ..schemas.real_estate_schema import RealEstateMktCreateSchema
+
+logger = logging.getLogger(__name__)
 
 
 class RealEstateMktRepository:
@@ -81,5 +84,6 @@ class RealEstateMktRepository:
             self.db.commit()
             return len(records)
         except Exception as e:
+            logger.error(f"Error in create_bulk: {e}", exc_info=True)
             self.db.rollback()
             return 0

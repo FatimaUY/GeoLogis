@@ -2,6 +2,7 @@ from typing import List, Optional
 from fastapi import Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
+import logging
 
 from ..model.database import get_db
 from ..model.taxe_fonciere import TaxeFonciere
@@ -10,6 +11,8 @@ from ..schemas.taxe_fonciere_schema import (
     TaxeFonciereReadSchema,
     TaxeFonciereFilterSchema,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class TaxeFonciereRepository:
@@ -77,3 +80,29 @@ class TaxeFonciereRepository:
             "avg_taux_plein_teom": result.avg_taux_plein_teom,
             "avg_taux_global_th": result.avg_taux_global_th,
         } if result else {}
+
+    def create_bulk(self, schemas: List[TaxeFonciereCreateSchema]) -> int:
+        """Bulk insert multiple taxe foncière records from schemas."""
+        try:
+            records = [
+                TaxeFonciere(
+                    dept=schema.dept,
+                    nom_commune=schema.nom_commune,
+                    insee_com=schema.insee_com,
+                    annee_cible=int(schema.annee_cible),
+                    annee_source=int(schema.annee_source),
+                    est_fallback=schema.est_fallback if hasattr(schema, 'est_fallback') else False,
+                    taux_global_tfb=float(schema.taux_global_tfb) if schema.taux_global_tfb else None,
+                    taux_global_tfnb=float(schema.taux_global_tfnb) if schema.taux_global_tfnb else None,
+                    taux_plein_teom=float(schema.taux_plein_teom) if schema.taux_plein_teom else None,
+                    taux_global_th=float(schema.taux_global_th) if schema.taux_global_th else None,
+                )
+                for schema in schemas
+            ]
+            self.db.add_all(records)
+            self.db.commit()
+            return len(records)
+        except Exception as e:
+            logger.error(f"Error in create_bulk: {e}", exc_info=True)
+            self.db.rollback()
+            return 0

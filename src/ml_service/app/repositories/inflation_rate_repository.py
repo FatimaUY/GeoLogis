@@ -2,10 +2,13 @@ from typing import List, Optional
 from fastapi import Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, func
+import logging
 
 from ..model.database import get_db
 from ..model.inflation_rate import InflationRate
 from ..schemas.inflation_rate_schema import InflationRateCreateSchema
+
+logger = logging.getLogger(__name__)
 
 
 class InflationRateRepository:
@@ -67,5 +70,6 @@ class InflationRateRepository:
             self.db.commit()
             return len(records)
         except Exception as e:
+            logger.error(f"Error in create_bulk: {e}", exc_info=True)
             self.db.rollback()
             return 0

@@ -2,10 +2,13 @@ from typing import List, Optional
 from fastapi import Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
+import logging
 
 from ..model.database import get_db
 from ..model.communes import Commune
 from ..schemas.communes_schema import CommuneCreateSchema, CommuneFilterSchema
+
+logger = logging.getLogger(__name__)
 
 
 class CommuneRepository:
@@ -22,7 +25,7 @@ class CommuneRepository:
         """Get a record by ID."""
         return self.db.query(Commune).filter(Commune.id == record_id).first()
 
-    def get_by_insee(self, code_insee: int) -> List[Commune]:
+    def get_by_insee(self, code_insee: str) -> List[Commune]:
         """Get all records for a specific INSEE code."""
         return self.db.query(Commune).filter(
             Commune.code_insee == code_insee
@@ -50,7 +53,7 @@ class CommuneRepository:
         """Get all communes for a specific year."""
         return self.db.query(Commune).filter(Commune.annee == annee).all()
 
-    def get_by_insee_and_year(self, code_insee: int, annee: int) -> Optional[Commune]:
+    def get_by_insee_and_year(self, code_insee: str, annee: int) -> Optional[Commune]:
         """Get a specific commune in a specific year."""
         return self.db.query(Commune).filter(
             and_(
@@ -97,7 +100,7 @@ class CommuneRepository:
         try:
             records = [
                 Commune(
-                    code_insee=int(schema.code_insee),
+                    code_insee=schema.code_insee,
                     nom_standard=schema.nom_standard,
                     code_postal=schema.code_postal if hasattr(schema, 'code_postal') and schema.code_postal else None,
                     annee=int(schema.annee),
@@ -118,6 +121,7 @@ class CommuneRepository:
             self.db.commit()
             return len(records)
         except Exception as e:
+            logger.error(f"Error in create_bulk: {e}", exc_info=True)
             self.db.rollback()
             return 0
     

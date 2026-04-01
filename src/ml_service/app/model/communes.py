@@ -9,7 +9,7 @@ class Commune(Base):
     __tablename__ = "communes"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    code_insee: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    code_insee: Mapped[str] = mapped_column(String(10), nullable=False, index=True)
     nom_standard: Mapped[str] = mapped_column(String(255), nullable=False)
     code_postal: Mapped[str] = mapped_column(String(5), nullable=True, index=True)
     annee: Mapped[int] = mapped_column(Integer, nullable=False, index=True)

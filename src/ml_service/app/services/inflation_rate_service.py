@@ -27,7 +27,7 @@ class InflationRateService:
     def load_csv(self, file_path: str) -> pd.DataFrame:
         """Load CSV file and return DataFrame."""
         try:
-            return pd.read_csv(file_path)
+            return pd.read_csv(file_path, dtype={"annee": int})
         except FileNotFoundError:
             return pd.DataFrame()
         except Exception as e:

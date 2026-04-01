@@ -24,7 +24,7 @@ async def get_commune(record_id: int, repo: CommuneRepository = Depends()):
     return record
 
 @router.get("/by-insee/{code_insee}", response_model=List[CommuneReadSchema])
-async def get_by_insee(code_insee: int, repo: CommuneRepository = Depends()):
+async def get_by_insee(code_insee: str, repo: CommuneRepository = Depends()):
     """Get all records for a specific INSEE code."""
     return repo.get_by_insee(code_insee)
 

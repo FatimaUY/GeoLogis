@@ -1,8 +1,9 @@
 import pandas as pd
 import mlflow
 import mlflow.sklearn
+from xgboost import XGBClassifier
 from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline as SklearnPipeline
 from sklearn.impute import SimpleImputer
@@ -45,6 +46,10 @@ class Pipeline:
             "ratio_taxe",
             "ventes_par_habitant",
             "taxe_x_population",
+            "evolution_ventes",
+            "evolution_taxe",
+            "taxe_vs_moyenne_dep",
+            "ventes_moyennes_dep",
         ]
 
         preprocessor = ColumnTransformer(
@@ -60,13 +65,15 @@ class Pipeline:
                 ("selector", SelectKBest(f_classif, k=self.selected_k)),
                 (
                     "classifier",
-                    RandomForestClassifier(
+                    XGBClassifier(
                         random_state=self.random_state,
                         n_estimators=300,
-                        max_depth=20,
-                        min_samples_split=5,
-                        min_samples_leaf=2,
-                        class_weight="balanced",
+                        max_depth=6,
+                        learning_rate=0.1,
+                        subsample=0.8,
+                        colsample_bytree=0.8,
+                        eval_metric="mlogloss",
+                        use_label_encoder=False
                     ),
                 ),
             ]
@@ -95,6 +102,14 @@ class Pipeline:
 
         df["taxe_x_population"] = df["taux_global_tfb"] * (df["population"] + 1)
 
+
+        df["evolution_ventes"] = df.groupby("code_postal")["nb_ventes"].pct_change()
+        df["evolution_taxe"] = df.groupby("code_postal")["taux_global_tfb"].pct_change()
+
+        df["taxe_vs_moyenne_dep"] = df["taux_global_tfb"] / df.groupby("dep_code")["taux_global_tfb"].transform("mean")
+
+        df["ventes_moyennes_dep"] = df.groupby("dep_code")["nb_ventes"].transform("mean")
+
         return df
 
 
@@ -113,11 +128,16 @@ class Pipeline:
         return X_train, X_test, y_train, y_test
 
     def train(self, X_train: pd.DataFrame, y_train: pd.Series):
-        self.model.fit(X_train, y_train)
+        self.label_encoder = LabelEncoder()
+        
+        y_train_encoded = self.label_encoder.fit_transform(y_train)
+        
+        self.model.fit(X_train, y_train_encoded)
         return self
 
     def evaluate(self, X_test: pd.DataFrame, y_test: pd.Series) -> dict:
         y_pred = self.model.predict(X_test)
+        y_pred = self.label_encoder.inverse_transform(y_pred)
         return {
             "accuracy": accuracy_score(y_test, y_pred),
             "classification_report": classification_report(y_test, y_pred, zero_division=0),

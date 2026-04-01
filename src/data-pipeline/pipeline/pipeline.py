@@ -1,6 +1,9 @@
 import pandas as pd
 import mlflow
 import mlflow.sklearn
+from xgboost import XGBClassifier
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline as SklearnPipeline
 from sklearn.impute import SimpleImputer
@@ -18,7 +21,7 @@ class Pipeline:
         target_col="y",
         drop_cols=None,
         bad_dep_codes=None,
-        selected_k=5,
+        selected_k=20,
         random_state=42,
     ):
         self.target_col = target_col
@@ -27,14 +30,51 @@ class Pipeline:
         self.selected_k = selected_k
         self.random_state = random_state
 
+        categorical_cols = ["dep_code", "reg_code", "code_postal"]
+
+        numeric_cols = [
+            "annee",
+            "population",
+            "superficie_km2",
+            "zone_emploi",
+            "taux_global_tfb",
+            "taux_global_tfnb",
+            "taux_plein_teom",
+            "taux_global_th",
+            "nb_ventes",
+            "densite",
+            "ratio_taxe",
+            "ventes_par_habitant",
+            "taxe_x_population",
+            "evolution_ventes",
+            "evolution_taxe",
+            "taxe_vs_moyenne_dep",
+            "ventes_moyennes_dep",
+        ]
+
+        preprocessor = ColumnTransformer(
+            transformers=[
+                ("num", SimpleImputer(strategy="mean"), numeric_cols),
+                ("cat", OneHotEncoder(handle_unknown="ignore"), categorical_cols),
+            ]
+        )
+
         self.model = SklearnPipeline(
             [
-                ("imputer", SimpleImputer(strategy="mean")),
-                ("scaler", StandardScaler()),
+                ("preprocessing", preprocessor),
                 ("selector", SelectKBest(f_classif, k=self.selected_k)),
                 (
                     "classifier",
-                    RandomForestClassifier(random_state=self.random_state, n_estimators=100),
+                    XGBClassifier(
+                        random_state=self.random_state,
+                        n_estimators=300,
+                        max_depth=6,
+                        learning_rate=0.1,
+                        subsample=0.8,
+                        colsample_bytree=0.8,
+                        eval_metric="mlogloss",
+                        use_label_encoder=False
+                    ),
                 ),
             ]
         )
@@ -52,7 +92,26 @@ class Pipeline:
             df = df[~df["dep_code"].isin(self.bad_dep_codes)]
 
         df = df.dropna().reset_index(drop=True)
+        # Feature engineering ici
+
+        df["densite"] = df["population"] / (df["superficie_km2"] + 1)
+
+        df["ratio_taxe"] = df["taux_global_tfb"] / (df["taux_global_th"] + 1)
+
+        df["ventes_par_habitant"] = df["nb_ventes"] / (df["population"] + 1)
+
+        df["taxe_x_population"] = df["taux_global_tfb"] * (df["population"] + 1)
+
+
+        df["evolution_ventes"] = df.groupby("code_postal")["nb_ventes"].pct_change()
+        df["evolution_taxe"] = df.groupby("code_postal")["taux_global_tfb"].pct_change()
+
+        df["taxe_vs_moyenne_dep"] = df["taux_global_tfb"] / df.groupby("dep_code")["taux_global_tfb"].transform("mean")
+
+        df["ventes_moyennes_dep"] = df.groupby("dep_code")["nb_ventes"].transform("mean")
+
         return df
+
 
     def split(self, df: pd.DataFrame, features, year_col="annee"):
         if year_col not in df.columns:
@@ -69,11 +128,16 @@ class Pipeline:
         return X_train, X_test, y_train, y_test
 
     def train(self, X_train: pd.DataFrame, y_train: pd.Series):
-        self.model.fit(X_train, y_train)
+        self.label_encoder = LabelEncoder()
+        
+        y_train_encoded = self.label_encoder.fit_transform(y_train)
+        
+        self.model.fit(X_train, y_train_encoded)
         return self
 
     def evaluate(self, X_test: pd.DataFrame, y_test: pd.Series) -> dict:
         y_pred = self.model.predict(X_test)
+        y_pred = self.label_encoder.inverse_transform(y_pred)
         return {
             "accuracy": accuracy_score(y_test, y_pred),
             "classification_report": classification_report(y_test, y_pred, zero_division=0),

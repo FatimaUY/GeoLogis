@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 
 
 class PredictionInputSchema(BaseModel):
@@ -41,6 +41,51 @@ class PredictionOutputSchema(BaseModel):
         from_attributes = True
 
 
+class Prediction2026Schema(BaseModel):
+    """Schema for 2026 bulk predictions."""
+    
+    code_commune: int
+    code_insee: str
+    commune_name: str
+    dep_code: str
+    prediction: str
+    population: Optional[int] = None
+    taux_global_tfb: Optional[float] = None
+
+    class Config:
+        from_attributes = True
+
+
+class Predictions2026ResultSchema(BaseModel):
+    """Schema for 2026 predictions result."""
+    
+    year: int = 2026
+    total_predictions: int
+    predictions: List[Prediction2026Schema]
+    hausse_count: int = 0
+    baisse_count: int = 0
+    stable_count: int = 0
+
+    class Config:
+        from_attributes = True
+
+
+class PostalCodePredictionSchema(BaseModel):
+    """Schema for postal code prediction result."""
+    
+    postal_code: str
+    predicted_trend: str
+    total_records: int
+    records: List[Prediction2026Schema]
+    hausse_count: int = 0
+    baisse_count: int = 0
+    stable_count: int = 0
+    year: int = 2026
+
+    class Config:
+        from_attributes = True
+
+
 class ModelStatusSchema(BaseModel):
     """Schema for model training status."""
     
@@ -48,6 +93,3 @@ class ModelStatusSchema(BaseModel):
     accuracy: Optional[float] = None
     total_training_samples: int = 0
     message: str
-
-    class Config:
-        from_attributes = True

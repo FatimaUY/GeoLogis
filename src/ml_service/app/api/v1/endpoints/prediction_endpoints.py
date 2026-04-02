@@ -7,6 +7,8 @@ from ....schemas.prediction_schema import (
     PredictionInputSchema,
     PredictionOutputSchema,
     ModelStatusSchema,
+    Predictions2026ResultSchema,
+    PostalCodePredictionSchema,
 )
 from ....services.prediction_service import get_prediction_service, PredictionService
 
@@ -106,3 +108,80 @@ async def retrain_model(db: Session = Depends(get_db)):
         "total_training_samples": service.training_samples,
         "message": message,
     }
+
+
+@router.get("/2026", response_model=Predictions2026ResultSchema)
+async def get_2026_predictions(db: Session = Depends(get_db)):
+    """
+    Get price trend predictions for all communes for year 2026.
+    
+    This endpoint:
+    1. Uses the 2024 baseline data from the training dataset
+    2. Applies the trained model to predict 2026 trends
+    3. Returns predictions for all communes grouped by prediction class
+    
+    Returns:
+    - predictions: List of all commune predictions with details
+    - hausse_count: Number of communes predicted to have price increases
+    - baisse_count: Number of communes predicted to have price decreases
+    - stable_count: Number of communes predicted to be stable
+    
+    Requires:
+    - Model must be trained first (call /predictions/train endpoint)
+    """
+    service = get_prediction_service()
+    
+    if not service.is_trained:
+        raise HTTPException(
+            status_code=400,
+            detail="Model is not trained. Please call /predictions/train first."
+        )
+    
+    # Make 2026 predictions
+    result = service.predict_2026(db)
+    
+    if result is None:
+        raise HTTPException(status_code=500, detail="Error making 2026 predictions")
+    
+    return result
+
+
+@router.get("/2026/postal/{postal_code}", response_model=PostalCodePredictionSchema)
+async def get_predictions_by_postal_code(postal_code: str, db: Session = Depends(get_db)):
+    """
+    Get price trend predictions for a specific postal code for year 2026.
+    
+    This endpoint:
+    1. Filters the 2024 baseline data by postal code
+    2. Projects this data forward to 2026
+    3. Applies the trained model to predict trends
+    4. Returns the dominant trend and individual predictions
+    
+    Parameters:
+    - postal_code: The postal code to filter by (e.g., "75001", "69001")
+    
+    Returns:
+    - predicted_trend: Dominant trend for this postal code (hausse, baisse, or stable)
+    - records: List of all predictions for this postal code
+    - hausse_count: Number of records predicted to have price increases
+    - baisse_count: Number of records predicted to have price decreases
+    - stable_count: Number of records predicted to be stable
+    
+    Requires:
+    - Model must be trained first (call /predictions/train endpoint)
+    """
+    service = get_prediction_service()
+    
+    if not service.is_trained:
+        raise HTTPException(
+            status_code=400,
+            detail="Model is not trained. Please call /predictions/train first."
+        )
+    
+    # Get predictions for given postal code
+    result = service.get_predictions_by_postal_code(postal_code, db)
+    
+    if result is None:
+        raise HTTPException(status_code=500, detail=f"Error getting predictions for postal code {postal_code}")
+    
+    return result

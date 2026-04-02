@@ -54,7 +54,7 @@ def sample_dataframe():
     return pipeline, df_clean, features
 
 
-# ✅ TEST TRAIN
+# TEST TRAIN
 def test_train_fit(sample_dataframe):
     pipeline, df, features = sample_dataframe
 
@@ -69,7 +69,7 @@ def test_train_fit(sample_dataframe):
     assert hasattr(pipeline, "label_encoder")
 
 
-# ✅ TEST ENCODAGE LABEL
+# TEST ENCODAGE LABEL
 def test_label_encoding(sample_dataframe):
     pipeline, df, features = sample_dataframe
 
@@ -97,7 +97,7 @@ def test_predict(sample_dataframe):
     assert len(preds) == len(X_test)
 
 
-# ✅ TEST EVALUATE
+# TEST EVALUATE
 def test_evaluate_output(sample_dataframe):
     pipeline, df, features = sample_dataframe
 
@@ -114,7 +114,7 @@ def test_evaluate_output(sample_dataframe):
     assert isinstance(results["accuracy"], float)
 
 
-# ✅ TEST PERFORMANCE MINIMALE
+# TEST PERFORMANCE MINIMALE
 def test_model_learns(sample_dataframe):
     pipeline, df, features = sample_dataframe
 
@@ -128,7 +128,7 @@ def test_model_learns(sample_dataframe):
     assert results["accuracy"] >= 0.0
 
 
-# ✅ TEST ERREUR SI MAUVAISES DONNÉES
+# TEST ERREUR SI MAUVAISES DONNÉES
 def test_train_with_empty_data():
     pipeline = Pipeline()
 
@@ -139,7 +139,7 @@ def test_train_with_empty_data():
         pipeline.train(X, y)
 
 
-# ✅ TEST SPLIT
+# TEST SPLIT
 def test_split_year_logic(sample_dataframe):
     pipeline, df, features = sample_dataframe
 

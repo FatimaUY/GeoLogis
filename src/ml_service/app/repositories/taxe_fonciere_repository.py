@@ -32,6 +32,28 @@ class TaxeFonciereRepository:
     def get_by_dept(self, dept: str) -> List[TaxeFonciere]:
         """Get all records for a specific department."""
         return self.db.query(TaxeFonciere).filter(TaxeFonciere.dept == dept).all()
+    
+    def get_by_postal_code(self, postal_code: str) -> List[TaxeFonciere]:
+        """Get all records for a specific postal code."""
+        return self.db.query(TaxeFonciere).filter(TaxeFonciere.code_postal == postal_code).all()
+    
+    def get_by_postal_code_and_year(self, postal_code: str, annee_cible: int) -> List[TaxeFonciere]:
+        """Get records for a specific postal code and year."""
+        return self.db.query(TaxeFonciere).filter(
+            and_(
+                TaxeFonciere.code_postal == postal_code,
+                TaxeFonciere.annee_cible == annee_cible,
+            )
+        ).all()
+    
+    def get_by_postal_code_and_dept(self, postal_code: str, dept: str) -> List[TaxeFonciere]:
+        """Get records for a specific postal code and department."""
+        return self.db.query(TaxeFonciere).filter(
+            and_(
+                TaxeFonciere.code_postal == postal_code,
+                TaxeFonciere.dept == dept,
+            )
+        ).all()
 
     def get_by_insee(self, insee_com: str) -> List[TaxeFonciere]:
         """Get all records for a specific INSEE commune code."""
@@ -56,25 +78,32 @@ class TaxeFonciereRepository:
             )
         ).first()
 
-    def count_fallback(self) -> int:
-        """Get count of records that used fallback years."""
-        return self.db.query(TaxeFonciere).filter(
-            TaxeFonciere.est_fallback == True
-        ).count()
+    def count_fallback(self, postal_code: Optional[str] = None) -> int:
+        """Get count of records that used fallback years, optionally filtered by postal code."""
+        query = self.db.query(TaxeFonciere).filter(TaxeFonciere.est_fallback == True)
+        if postal_code:
+            query = query.filter(TaxeFonciere.code_postal == postal_code)
+        return query.count()
 
-    def get_average_rates_by_year(self, annee_cible: int) -> dict:
-        """Get average tax rates for a specific year."""
+    def get_average_rates_by_year(self, annee_cible: int, postal_code: Optional[str] = None) -> dict:
+        """Get average tax rates for a specific year, optionally filtered by postal code."""
         from sqlalchemy import func
 
-        result = self.db.query(
+        query = self.db.query(
             func.avg(TaxeFonciere.taux_global_tfb).label("avg_taux_global_tfb"),
             func.avg(TaxeFonciere.taux_global_tfnb).label("avg_taux_global_tfnb"),
             func.avg(TaxeFonciere.taux_plein_teom).label("avg_taux_plein_teom"),
             func.avg(TaxeFonciere.taux_global_th).label("avg_taux_global_th"),
-        ).filter(TaxeFonciere.annee_cible == annee_cible).first()
+        ).filter(TaxeFonciere.annee_cible == annee_cible)
+        
+        if postal_code:
+            query = query.filter(TaxeFonciere.code_postal == postal_code)
+        
+        result = query.first()
 
         return {
             "annee_cible": annee_cible,
+            "postal_code": postal_code,
             "avg_taux_global_tfb": result.avg_taux_global_tfb,
             "avg_taux_global_tfnb": result.avg_taux_global_tfnb,
             "avg_taux_plein_teom": result.avg_taux_plein_teom,

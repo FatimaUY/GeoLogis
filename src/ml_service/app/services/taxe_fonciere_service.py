@@ -2,11 +2,14 @@ import sys
 import pandas as pd
 import requests
 import time
+import logging
 from datetime import datetime
 from typing import Optional
 
 from ..model.database import engine, SessionLocal
 from ..model.taxe_fonciere import TaxeFonciere
+
+logger = logging.getLogger(__name__)
 
 # ------------------------------------------------------------------ #
 #  Config - mirrored from api_taxe_foncière.py                       #
@@ -243,30 +246,50 @@ class TaxeFonciereService:
         db = SessionLocal()
         try:
             if df.empty:
+                logger.warning("Dataframe is empty, cannot save")
                 return False
 
+            logger.info(f"Clearing existing records from {table_name}")
             db.query(TaxeFonciere).delete()
             
-            records = [
-                TaxeFonciere(
-                    dept=row["dept"],
-                    nom_commune=row["nom_commune"],
-                    insee_com=row["insee_com"],
-                    annee_cible=int(row["annee_cible"]),
-                    annee_source=int(row["annee_source"]),
-                    est_fallback=bool(row["est_fallback"]),
-                    taux_global_tfb=float(row["taux_global_tfb"]) if pd.notna(row["taux_global_tfb"]) else None,
-                    taux_global_tfnb=float(row["taux_global_tfnb"]) if pd.notna(row["taux_global_tfnb"]) else None,
-                    taux_plein_teom=float(row["taux_plein_teom"]) if pd.notna(row["taux_plein_teom"]) else None,
-                    taux_global_th=float(row["taux_global_th"]) if pd.notna(row["taux_global_th"]) else None,
-                )
-                for _, row in df.iterrows()
-            ]
+            logger.info(f"Creating {len(df)} records from dataframe")
+            logger.debug(f"DataFrame columns: {list(df.columns)}")
             
+            records = []
+            for idx, (_, row) in enumerate(df.iterrows()):
+                try:
+                    # Extract code_postal if available, otherwise use first 2 digits of insee_com as dept
+                    code_postal = row.get("code_postal")
+                    if pd.isna(code_postal) or code_postal is None:
+                        # Fallback: derive from insee_com (first 2 digits) if not available
+                        insee_str = str(row.get("insee_com", "00000"))
+                        code_postal = insee_str[:2] + "000"  # Placeholder postal code
+                    
+                    record = TaxeFonciere(
+                        dept=row["dept"],
+                        nom_commune=row["nom_commune"],
+                        insee_com=row["insee_com"],
+                        code_postal=str(code_postal),
+                        annee_cible=int(row["annee_cible"]),
+                        annee_source=int(row["annee_source"]),
+                        est_fallback=bool(row["est_fallback"]),
+                        taux_global_tfb=float(row["taux_global_tfb"]) if pd.notna(row["taux_global_tfb"]) else None,
+                        taux_global_tfnb=float(row["taux_global_tfnb"]) if pd.notna(row["taux_global_tfnb"]) else None,
+                        taux_plein_teom=float(row["taux_plein_teom"]) if pd.notna(row["taux_plein_teom"]) else None,
+                        taux_global_th=float(row["taux_global_th"]) if pd.notna(row["taux_global_th"]) else None,
+                    )
+                    records.append(record)
+                except Exception as e:
+                    logger.error(f"Error creating record at index {idx}: {e}", exc_info=True)
+                    raise
+            
+            logger.info(f"Adding {len(records)} records to session")
             db.add_all(records)
             db.commit()
+            logger.info(f"Successfully saved {len(records)} records to database")
             return True
         except Exception as e:
+            logger.error(f"Error in save_to_database: {e}", exc_info=True)
             db.rollback()
             return False
         finally:
@@ -298,6 +321,7 @@ class TaxeFonciereService:
 
             if success:
                 duration = (datetime.now() - start_time).total_seconds()
+                logger.info(f"Sync completed successfully: {len(df)} records saved in {duration}s")
 
                 return {
                     "success": True,
@@ -308,6 +332,7 @@ class TaxeFonciereService:
                     "duration_seconds": duration,
                 }
             else:
+                logger.error("Failed to save data to database - check logs for details")
                 return {
                     "success": False,
                     "message": "Failed to save data to database",

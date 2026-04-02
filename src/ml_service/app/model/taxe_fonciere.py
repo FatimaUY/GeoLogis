@@ -12,6 +12,7 @@ class TaxeFonciere(Base):
     dept: Mapped[str] = mapped_column(String(5), nullable=False, index=True)
     nom_commune: Mapped[str] = mapped_column(String(255), nullable=False)
     insee_com: Mapped[str] = mapped_column(String(5), nullable=False, index=True)
+    code_postal: Mapped[str] = mapped_column(String(5), nullable=True, index=True)
     annee_cible: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     annee_source: Mapped[int] = mapped_column(Integer, nullable=False)
     est_fallback: Mapped[bool] = mapped_column(Boolean, default=False)

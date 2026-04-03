@@ -12,6 +12,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.feature_selection import SelectKBest, f_classif
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.utils.class_weight import compute_sample_weight
+
 
 mlflow.sklearn.autolog()
 
@@ -43,8 +45,8 @@ class Pipeline:
             numeric_cols
             if numeric_cols is not None
             else [
-                "annee",
-                "population",
+                #"annee",
+                #"population",
                 "superficie_km2",
                 "zone_emploi",
                 "taux_global_tfb",
@@ -103,6 +105,12 @@ class Pipeline:
         if "dep_code" in df.columns:
             df = df[~df["dep_code"].isin(self.bad_dep_codes)]
 
+
+        for col in self.categorical_cols:
+            if col in df.columns:
+                df[col] = df[col].astype(str)
+
+
         df = df.dropna().reset_index(drop=True)
         # Feature engineering ici
 
@@ -129,8 +137,8 @@ class Pipeline:
         if year_col not in df.columns:
             raise ValueError(f"Colonne de split '{year_col}' introuvable")
 
-        train_df = df[df[year_col] < 2024]
-        test_df = df[df[year_col] == 2024]
+        train_df = df[df[year_col] < 2025]
+        test_df = df[df[year_col] == 2025]
 
         X_train = train_df[features]
         y_train = train_df[self.target_col]
@@ -151,7 +159,12 @@ class Pipeline:
         self.label_encoder = LabelEncoder()
         y_train_encoded = self.label_encoder.fit_transform(y_train)
 
-        self.model.fit(X_train, y_train_encoded)
+        # Calcul des poids par classe
+        sample_weights = compute_sample_weight(class_weight="balanced", y=y_train_encoded)
+
+        self.model.set_params(selector__k=15) 
+
+        self.model.fit(X_train, y_train_encoded, classifier__sample_weight=sample_weights)
         return self
 
     def evaluate(self, X_test: pd.DataFrame, y_test: pd.Series) -> dict:

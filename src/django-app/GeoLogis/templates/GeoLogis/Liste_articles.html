@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block title %}Liste des articles{% endblock %}
+
+{% block content %}
+    <h1>Liste des articles</h1>
+    <ul>
+        {% for article in articles %}
+            <li>
+                <h2>{{ article.title }}</h2>
+                <p>{{ article.content }}</p>
+                <p>Publié le {{ article.published_date }}</p>
+            </li>
+        {% endfor %}
+    </ul>
+{% endblock %}

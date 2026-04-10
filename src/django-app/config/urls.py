@@ -15,8 +15,23 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from GeoLogis.views import  ListeArticlesView
+from GeoLogis.views import ListeArticlesView, info_view
+
 
 urlpatterns = [
+    path('', ListeArticlesView.as_view(), name='home'),
     path('admin/', admin.site.urls),
+    path('predictions/', include('predictions.urls')), 
+    path('information/', info_view, name='info_key'),
+    path('', include('users.urls')),
+    path('api/market/', include('market.urls')),
+    path('api/predictions/', include('predictions.urls')),
+    path('api/geologis/', include('GeoLogis.urls')),
 ]
+
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'profil'
+LOGOUT_REDIRECT_URL = 'home'
+PASSWORD_CHANGE_REDIRECT_URL = 'profil'

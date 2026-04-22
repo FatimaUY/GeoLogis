@@ -1,73 +1,120 @@
-# GeoLogis : Plateforme d'Analyse et de Prédiction Immobilière
+🚀 GeoLogis
 
-**GeoLogis** est une solution de traitement de données et de prédiction pour le marché immobilier. Le projet combine un pipeline de données, un service de Machine Learning (ML) basé sur FastAPI et une interface utilisateur moderne développée avec Django et Tailwind CSS. Il permet d'extraire des données géographiques, de les transformer et de fournir des prédictions précises sur les tendances du marché.
+Plateforme d’analyse et de prédiction du marché immobilier
+GeoLogis est une plateforme complète de data engineering et machine learning dédiée à l’analyse du marché immobilier.
+Elle combine un pipeline de données, un service de Machine Learning et une application web Django permettant la visualisation et l’exploitation des prédictions.
 
-## 🏗️ Architecture du Projet
+🏗️ Architecture globale
+GeoLogis est structuré en trois services indépendants :
+Service	Technologie	Rôle
 
-L'architecture de GeoLogis est divisée en trois composants principaux, chacun ayant une responsabilité spécifique dans le cycle de vie des données :
+📊 Data Pipeline	Python, Pandas, Scikit-learn	Extraction, nettoyage et transformation des données
 
-| Composant | Technologie | Description |
-| :--- | :--- | :--- |
-| **Data Pipeline** | Python, Pandas, Scikit-learn | Extraction, transformation et nettoyage des données immobilières. |
-| **ML Service** | FastAPI, SQLAlchemy | API REST fournissant des endpoints pour l'entraînement des modèles et les prédictions. |
-| **Django App** | Django, Tailwind CSS | Interface web permettant aux utilisateurs de visualiser les données et d'interagir avec les modèles. |
+🤖 ML Service	FastAPI, XGBoost, SQLAlchemy, MLflow	API de prédiction et entraînement des modèles
 
-## 🚀 Fonctionnalités Clés
+🌐 Django App	Django, Tailwind CSS	Interface utilisateur et dashboard
 
-*   **Extraction de Données Géographiques** : Scripts dédiés à la récupération de données depuis l'API pour enrichir les analyses immobilières.
-*   **Pipeline de Machine Learning** : Système automatisé pour le prétraitement des données, l'entraînement de modèles et la sauvegarde des modèles entraînés.
-*   **Service de Prédiction API** : Une API FastAPI performante offrant des endpoints pour :
-    *   L'estimation de la taxe foncière.
-    *   La prédiction des états immobiliers.
-    *   L'analyse des taux d'inflation et des données communales.
-*   **Interface Utilisateur Intuitive** : Dashboard Django intégrant des cartes interactives et des formulaires de prédiction.
-
-## 📁 Structure du Dépôt
-
-```text
+📁 Structure du projet
 GeoLogis/
 ├── src/
-│   ├── data-pipeline/    # Scripts d'ETL et notebooks d'expérimentation
-│   ├── django-app/       # Application web principale (Django)
-│   └── ml_service/       # API de Machine Learning (FastAPI)
-├── static/               # Fichiers statiques et ressources géographiques
-├── flatfiles/            # Stockage des données brutes
-├── requirements.txt      # Dépendances globales du projet
-└── geologis.db           # Base de données SQLite pour le développement
-```
+│   ├── data_pipeline/        # ETL, preprocessing, training
+│   ├── django-app/           # Application web Django
+│   └── ml_service/           # API ML (FastAPI)
+│
+├── static/                   # assets (images, css)
+├── mlruns/                   # tracking MLflow
+├── requirements.txt          # dépendances principales
+├── requirements-dev.txt      # tests & dev tools
+└── README.md
 
-## 🛠️ Installation et Configuration
+⚙️ Fonctionnalités
 
-1.  **Cloner le dépôt** :
-    ```bash
-    git clone https://github.com/FatimaUY/GeoLogis.git
-    cd GeoLogis
-    ```
+📊 Data Pipeline
+Extraction de données immobilières (API, CSV)
+Nettoyage et normalisation des datasets
+Feature engineering
+Préparation des données pour modèles ML
+Pipelines reproductibles pour entraînement
 
-2.  **Installer les dépendances** :
-    ```bash
-    pip install -r requirements.txt
-    ```
+🤖 ML Service (FastAPI)
+API REST de prédiction
+Estimation immobilière
+Calcul de taxe foncière
+Analyse inflation et données géographiques
+Entraînement des modèles ML
+Tracking des expériences avec MLflow
+Sérialisation des modèles (model.pkl)
 
-3.  **Lancer le service ML (FastAPI)** :
-    ```bash
-    cd src/ml_service
-    uvicorn app.main:app --reload
-    ```
+🌐 Django App
+Interface web utilisateur
+Dashboard immobilier interactif
+Authentification utilisateurs
+Visualisation des prédictions
+Intégration avec le service ML via API REST
 
-4.  **Lancer l'application web (Django)** :
-    ```bash
-    cd src/django-app
-    python manage.py migrate
-    python manage.py runserver
-    ```
+🔗 Communication entre services
+Django agit comme gateway frontend
+ML Service expose une API FastAPI
+Communication via requêtes HTTP (requests)
+Pipeline indépendant pour préparation et training
 
-## 👥 Contributeurs
+⚙️ Installation
 
-Ce projet a été développé par une équipe dédiée :
-*   **Fatima**
-*   **Hazel**
-*   **Sarah**
-*   **Lohan**
+1. Cloner le projet
+git clone https://github.com/FatimaUY/GeoLogis.git
+cd GeoLogis
 
----
+2. Installer les dépendances
+
+🌐 Django App
+cd src/django-app
+pip install -r requirements.txt
+
+🤖 ML Service
+cd ../ml_service
+pip install -r requirements.txt
+
+📊 Data Pipeline
+cd ../data_pipeline
+pip install -r requirements.txt
+
+🍎 Prérequis macOS (IMPORTANT)
+Si vous utilisez macOS (Apple Silicon / Intel), installez OpenMP :
+brew install libomp
+👉 Nécessaire pour le bon fonctionnement de XGBoost
+
+3. Lancer le ML Service
+cd src/ml_service
+uvicorn app.main:app --reload
+
+4. Lancer Django
+cd src/django-app
+python manage.py migrate
+python manage.py runserver
+
+🧠 Stack technique
+Python 3.13
+Django
+FastAPI
+XGBoost
+Scikit-learn
+Pandas
+SQLAlchemy
+MLflow
+Tailwind CSS
+SQLite (dev)
+
+🧪 Tests
+pip install -r requirements-dev.txt
+pytest
+
+📦 Environnements
+Environnement	Fichier
+Production	requirements.txt
+Développement	requirements-dev.txt
+
+👥 Équipe
+Fatima
+Hazel
+Sarah
+Lohan

@@ -1,0 +1,26 @@
+# Core ML
+numpy==2.4.3
+pandas==2.3.3
+scikit-learn==1.8.0
+scipy==1.17.1
+xgboost==3.2.0
+
+# Model persistence
+joblib==1.5.3
+
+# API ML (FastAPI)
+fastapi==0.135.3
+uvicorn==0.42.0
+pydantic==2.12.5
+
+# Data / utils pipeline
+python-dotenv==1.2.2
+
+# DB (si utilisée dans ML service)
+SQLAlchemy==2.0.48
+psycopg2-binary==2.9.11
+
+# ML tracking (tu l'utilises déjà)
+mlflow==3.11.1
+mlflow-skinny==3.11.1
+mlflow-tracing==3.11.1

@@ -48,7 +48,7 @@ def trends(request):
 
 @login_required(login_url='login')
 def market_view(request):
-    code_postal     = request.GET.get('code_postal', '').strip()
+    code_insee     = request.GET.get('code_insee', '').strip()
     annee_courante  = 2024
 
     # Valeurs par défaut
@@ -60,11 +60,11 @@ def market_view(request):
     prediction_2026 = None
     années          = ['2020', '2021', '2022', '2023', '2024', '2025']
 
-    # ── 1. Données liées au code postal ──────────────────────────────────────
-    if code_postal:
+    # ── 1. Données liées au code insee ──────────────────────────────────────
+    if code_insee:
 
         # Communes
-        communes_raw = fetch_fastapi(f"/api/v1/communes/by-postal/{code_postal}", [])
+        communes_raw = fetch_fastapi(f"/api/v1/communes/by-insee/{code_insee}", [])
         if communes_raw:
             seen = set()
             for c in communes_raw:
@@ -76,7 +76,7 @@ def market_view(request):
 
         # Taxe foncière moyenne
         taxe_data = fetch_fastapi(
-            f"/taxe_fonciere/postal/{code_postal}/year/{annee_courante}", []
+            f"/taxe_fonciere/postal/{code_insee}/year/{annee_courante}", []
         )
         if taxe_data:
             taux_valides = [t.get("taux_global_tfb") for t in taxe_data if t.get("taux_global_tfb")]
@@ -85,28 +85,47 @@ def market_view(request):
 
         # Taux moyens (fallback si taxe_data vide)
         avg_rates = fetch_fastapi(
-            f"/taxe_fonciere/analytics/average-rates/{annee_courante}?postal_code={code_postal}", {}
+            f"/taxe_fonciere/analytics/average-rates/{annee_courante}?postal_code={code_insee}", {}
         )
 
         # Prédiction 2026
         prediction_2026 = fetch_fastapi(
-            f"/predictions/2026/postal/{code_postal}", None
+            f"/predictions/2026/postal/{code_insee}", None
         )
 
         # Prix m² + historique via la première commune trouvée
-        if communes:
-            insee = communes[0]["insee"]
-            trend = fetch_fastapi(f"/api/v1/real-estate/trend/{insee}", [])
-            if trend:
-                derniere       = trend[-1]
-                avant          = trend[-2] if len(trend) > 1 else {}
-                prix_m2        = round(derniere.get("valeur_fonciere_par_m2", prix_m2))
-                prev           = avant.get("valeur_fonciere_par_m2", prix_m2)
-                prix_m2_change = round(((prix_m2 - prev) / prev) * 100, 1) if prev else 3.2
+    if communes:
+        insee = communes[0]["insee"]
+        trend = fetch_fastapi(f"/api/v1/real-estate/trend/{insee}", [])
 
-                trend_map  = {str(t.get("annee")): t.get("valeur_fonciere_par_m2") for t in trend}
-                fallback   = [4350, 4600, 4750, 4820, 4950, 5100]
-                prix_series = [trend_map.get(a) or fallback[i] for i, a in enumerate(années)]
+        if trend:
+            trend_by_year = {}
+            for t in trend:
+                annee = t.get("annee")
+                if annee not in trend_by_year:
+                    trend_by_year[annee] = t
+
+            t_2025 = trend_by_year.get(2025)
+            if t_2025:
+                prix_m2 = round(t_2025.get("prix_m2", prix_m2))
+
+            t_2024 = trend_by_year.get(2024)
+            prev = t_2024.get("prix_m2") if t_2024 else None
+
+            prix_m2_change = (
+                round(((prix_m2 - prev) / prev) * 100, 1)
+                if prev not in (None, 0)
+                else None
+            )
+
+            trend_map = {
+                int(annee): data.get("prix_m2")
+                for annee, data in trend_by_year.items()
+            }
+
+            années = sorted(trend_map.keys())
+
+            prix_series = [trend_map.get(a) for a in années]
 
     else:
         avg_rates = fetch_fastapi(
@@ -177,7 +196,7 @@ def market_view(request):
 
     # ── 5. Contexte template ──────────────────────────────────────────────────
     context = {
-        'code_postal'    : code_postal,
+        'code_insee'    : code_insee,
         'communes'       : communes,
         'taux_tfb'       : taux_moy,
         'prediction_2026': prediction_2026,
